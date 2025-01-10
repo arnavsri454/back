@@ -25,12 +25,13 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Enable CORS
-app.use(cors({
-    origin: [
-        'http://127.0.0.1:5501',
-        'http://localhost:5501',
-        ' https://front-gemg.onrender.com'
-    ],
+ app.use(cors({
+    origin: 'https://front-gemg.onrender.com', // Your frontend URL on Render
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true
+}));
+
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true
