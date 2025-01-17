@@ -1,4 +1,4 @@
-import express from 'express';
+  import express from 'express';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -25,13 +25,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Enable CORS
- app.use(cors({
+app.use(cors({
     origin: 'https://front-gemg.onrender.com', // Your frontend URL on Render
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true
-}));
-
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true
@@ -49,6 +44,7 @@ app.post('/upload', upload.single('image'), (req, res) => {
     res.json({ imageUrl });
 });
 
+// Start HTTP server
 const expressServer = app.listen(PORT, () => {
     console.log(`Listening on port ${PORT}`);
 });
@@ -56,11 +52,7 @@ const expressServer = app.listen(PORT, () => {
 // Initialize Socket.io
 const io = new Server(expressServer, {
     cors: {
-        origin: [
-            'http://127.0.0.1:5501',
-            'http://localhost:5501',
-            'https://front-gemg.onrender.com '
-        ],
+        origin: 'https://front-gemg.onrender.com', // Frontend domain
         methods: ['GET', 'POST'],
         allowedHeaders: ['Content-Type'],
         credentials: true
