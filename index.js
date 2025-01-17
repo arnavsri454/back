@@ -8,7 +8,7 @@ import multer from 'multer';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 10000;
-const ADMIN = 'Admin'
+ 
 const ADMIN = 'Summoner';
 
 const app = express();
@@ -79,13 +79,13 @@ io.on('connection', (socket) => {
         socket.emit('chatHistory', history);
 
         socket.to(room).emit('message', {
-            name: ADMIN,
+            name: Summoner,
             text: `${name} has joined the room.`,
             time: new Date().toLocaleTimeString(),
         });
 
         socket.emit('message', {
-            name: ADMIN,
+            name: Summoner,
             text: `Welcome to the room ${room}`,
             time: new Date().toLocaleTimeString(),
         });
