@@ -8,7 +8,8 @@ import multer from 'multer';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 10000;
-const ADMIN = 'Admin';
+const ADMIN = 'Admin'
+const ADMIN = 'Summoner';
 
 const app = express();
 
@@ -65,7 +66,7 @@ io.on('connection', (socket) => {
 
     // Send a global welcome message when a user connects
     socket.emit('message', {
-        name: ADMIN,
+        name: Summoner,
         text: 'Welcome to the Chate ! Join a room to start chatting.',
         time: new Date().toLocaleTimeString(),
     });
