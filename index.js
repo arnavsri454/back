@@ -8,6 +8,10 @@ import multer from 'multer';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 3500;
+const expressServer = app.listen(PORT, () => {
+    console.log(`Listening on port ${PORT}`);
+});
+
 const ADMIN = 'Admin';
 
 const app = express();
