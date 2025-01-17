@@ -63,6 +63,13 @@ const io = new Server(expressServer, {
 io.on('connection', (socket) => {
     console.log(`User ${socket.id} connected`);
 
+    // Send a global welcome message when a user connects
+    socket.emit('message', {
+        name: Summoner,
+        text: 'Welcome to the Chate ! Join a room to start chatting.',
+        time: new Date().toLocaleTimeString(),
+    });
+
     socket.on('joinRoom', ({ name, room }) => {
         console.log(`${name} joined room ${room}`);
         socket.join(room);
