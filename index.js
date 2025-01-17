@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
 
     // Send a global welcome message when a user connects
     socket.emit('message', {
-        name: Summoner,
+        name: ADMIN,
         text: 'Welcome to the Chate ! Join a room to start chatting.',
         time: new Date().toLocaleTimeString(),
     });
