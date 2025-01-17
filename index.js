@@ -7,15 +7,15 @@ import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const PORT = process.env.PORT || 3500;
+const PORT = process.env.PORT || 10000; // Ensure Render uses the correct port
 const ADMIN = 'Admin';
 
 const app = express();
 
-// Chat history storage
-const chatHistory = {};
+// In-memory storage for chat messages
+const chatHistory = {}; // Maps room names to an array of messages
 
-// Multer setup
+// Configure Multer for image uploads
 const storage = multer.diskStorage({
     destination: path.join(__dirname, 'public/uploads'),
     filename: (req, file, cb) => {
@@ -24,18 +24,20 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// CORS setup
-app.use(cors({
-    origin: 'https://front-gemg.onrender.com',
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true
-}));
+// Enable CORS
+app.use(
+    cors({
+        origin: ['https://front-gemg.onrender.com'], // Add your frontend Render URL
+        methods: ['GET', 'POST'],
+        allowedHeaders: ['Content-Type'],
+        credentials: true,
+    })
+);
 
-// Serve static files
+// Serve static files (public folder)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Image upload endpoint
+// Image upload route
 app.post('/upload', upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -44,48 +46,79 @@ app.post('/upload', upload.single('image'), (req, res) => {
     res.json({ imageUrl });
 });
 
-// Start the Express server
+// Start Express server
 const expressServer = app.listen(PORT, () => {
-    console.log(`Listening on port ${PORT}`);
+    console.log(`Server is listening on port ${PORT}`);
 });
 
-// Socket.IO setup
+// Initialize Socket.io with CORS settings
 const io = new Server(expressServer, {
     cors: {
-        origin: 'https://front-gemg.onrender.com',
+        origin: ['https://front-gemg.onrender.com'], // Add your frontend Render URL
         methods: ['GET', 'POST'],
         allowedHeaders: ['Content-Type'],
-        credentials: true
-    }
+        credentials: true,
+    },
 });
 
+// Main socket.io logic
 io.on('connection', (socket) => {
     console.log(`User ${socket.id} connected`);
 
+    // Handle 'joinRoom' event
     socket.on('joinRoom', ({ name, room }) => {
+        console.log(`User ${name} joined room ${room}`);
         socket.join(room);
-        socket.emit('chatHistory', chatHistory[room] || []);
-        socket.to(room).emit('message', { name: ADMIN, text: `${name} joined`, time: new Date().toLocaleTimeString() });
+
+        // Send chat history to the new user
+        const history = chatHistory[room] || [];
+        socket.emit('chatHistory', history);
+
+        // Notify other users in the room
+        socket.to(room).emit('message', {
+            name: ADMIN,
+            text: `${name} has joined the room.`,
+            time: new Date().toLocaleTimeString(),
+        });
+
+        // Send welcome message to the user
+        socket.emit('message', {
+            name: ADMIN,
+            text: `Welcome to the room ${room}`,
+            time: new Date().toLocaleTimeString(),
+        });
     });
 
+    // Handle text messages
     socket.on('message', ({ name, text, room }) => {
-        const message = { name, text, time: new Date().toLocaleTimeString() };
+        console.log(`Message from ${name} in room ${room}: ${text}`);
         if (!chatHistory[room]) chatHistory[room] = [];
+
+        const message = { name, text, time: new Date().toLocaleTimeString() };
         chatHistory[room].push(message);
+
+        // Broadcast message to the room
         io.to(room).emit('message', message);
     });
 
-    socket.on('disconnect', () => {
-        console.log(`User ${socket.id} disconnected`);
+    // Handle image messages
+    socket.on('imageMessage', ({ name, imageUrl, room }) => {
+        console.log(`Image from ${name} in room ${room}: ${imageUrl}`);
+        if (!chatHistory[room]) chatHistory[room] = [];
+
+        const message = {
+            name,
+            text: `<img src="${imageUrl}" alt="Shared image" class="shared-image"/>`,
+            time: new Date().toLocaleTimeString(),
+        };
+        chatHistory[room].push(message);
+
+        // Broadcast image message to the room
+        io.to(room).emit('message', message);
+    });
+
+    // Handle user disconnect
+    socket.on('disconnect', (reason) => {
+        console.log(`User ${socket.id} disconnected. Reason: ${reason}`);
     });
 });
-socket.on('joinRoom', ({ name, room }) => {
-    console.log(`User ${socket.id} joined room: ${room} with name: ${name}`);
-    // Existing logic...
-});
-
-socket.on('message', ({ name, text, room }) => {
-    console.log(`Message received in room ${room} from ${name}: ${text}`);
-    // Existing logic...
-});
-
