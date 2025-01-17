@@ -79,4 +79,13 @@ io.on('connection', (socket) => {
         console.log(`User ${socket.id} disconnected`);
     });
 });
+socket.on('joinRoom', ({ name, room }) => {
+    console.log(`User ${socket.id} joined room: ${room} with name: ${name}`);
+    // Existing logic...
+});
+
+socket.on('message', ({ name, text, room }) => {
+    console.log(`Message received in room ${room} from ${name}: ${text}`);
+    // Existing logic...
+});
 
