@@ -1,4 +1,4 @@
- import express from 'express';
+const express = require('express');
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,8 +12,9 @@ const ADMIN = 'Admin';
 
 const app = express();
 
-// In-memory storage for chat messages
+// In-memory storage for chat messages and active users
 const chatHistory = {};
+const users = {};
 
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
@@ -63,7 +64,7 @@ const io = new Server(expressServer, {
 io.on('connection', (socket) => {
     console.log(`User ${socket.id} connected`);
 
-    // Send a global welcome message when a user connects
+    // Send a global welcome message
     socket.emit('message', {
         name: ADMIN,
         text: 'Welcome to the Chat App! Join a room to start chatting.',
@@ -74,15 +75,25 @@ io.on('connection', (socket) => {
         console.log(`${name} joined room ${room}`);
         socket.join(room);
 
+        // Add user to active members list
+        users[socket.id] = { name, room };
+        const roomUsers = Object.values(users).filter((user) => user.room === room);
+
+        // Send chat history to the new user
         const history = chatHistory[room] || [];
         socket.emit('chatHistory', history);
 
+        // Notify others in the room
         socket.to(room).emit('message', {
             name: ADMIN,
             text: `${name} has joined the room.`,
             time: new Date().toLocaleTimeString(),
         });
 
+        // Broadcast updated user list
+        io.to(room).emit('roomUsers', roomUsers);
+
+        // Welcome the new user
         socket.emit('message', {
             name: ADMIN,
             text: `Welcome to the room ${room}`,
@@ -110,7 +121,33 @@ io.on('connection', (socket) => {
         io.to(room).emit('message', message);
     });
 
+    socket.on('typing', ({ name, room }) => {
+        socket.to(room).emit('userTyping', { name });
+    });
+
+    socket.on('stopTyping', ({ room }) => {
+        socket.to(room).emit('userStoppedTyping');
+    });
+
     socket.on('disconnect', () => {
+        const user = users[socket.id];
+        if (user) {
+            const { name, room } = user;
+            delete users[socket.id];
+
+            // Notify others in the room
+            socket.to(room).emit('message', {
+                name: ADMIN,
+                text: `${name} has left the room.`,
+                time: new Date().toLocaleTimeString(),
+            });
+
+            // Broadcast updated user list
+            const roomUsers = Object.values(users).filter((user) => user.room === room);
+            io.to(room).emit('roomUsers', roomUsers);
+        }
+
         console.log(`User ${socket.id} disconnected`);
     });
 });
+ 
