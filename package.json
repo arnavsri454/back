@@ -1,11 +1,11 @@
-{
+ {
   "name": "server",
   "version": "1.0.0",
   "main": "index.js",
-  "type": "module",
+  "type": "module", 
   "scripts": {
-    "start": "NODE_ENV=development node index.js .",
-    "dev": "nodemon ."
+    "start": "NODE_ENV=development node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
