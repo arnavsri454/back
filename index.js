@@ -7,6 +7,7 @@ import multer from 'multer';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import fs from 'fs';
 
 dotenv.config(); // Load environment variables
 
@@ -29,8 +30,14 @@ app.use(cors({
     credentials: true,
 }));
 
+// Ensure upload directory exists
+const uploadDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 // MongoDB Connection
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB Connected'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
@@ -48,7 +55,7 @@ const activeUsers = {};
 
 // File Upload Configuration (Images Only)
 const storage = multer.diskStorage({
-    destination: path.join(__dirname, 'public/uploads'),
+    destination: uploadDir,
     filename: (req, file, cb) => {
         cb(null, `${Date.now()}_${file.originalname}`);
     }
@@ -66,7 +73,7 @@ const upload = multer({
 });
 
 // Serve uploaded images
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/uploads', express.static(uploadDir));
 
 // Image Upload Endpoint
 app.post('/upload', upload.single('image'), (req, res) => {
@@ -105,7 +112,7 @@ io.on('connection', (socket) => {
     // Join Room
     socket.on('joinRoom', async ({ name, room }) => {
         socket.join(room);
-        activeUsers[socket.id] = { name, room };
+        activeUsers[socket.id] = { name, room, id: socket.id };
 
         // Fetch and send previous messages
         const messages = await Message.find({ room }).sort({ time: 1 }).limit(50);
@@ -118,7 +125,6 @@ io.on('connection', (socket) => {
             time: new Date().toLocaleTimeString(),
         });
 
-        // Update Active Users List
         io.to(room).emit('activeUsers', Object.values(activeUsers));
     });
 
@@ -136,9 +142,11 @@ io.on('connection', (socket) => {
         io.to(room).emit('message', message);
     });
 
-    // Handle Audio Calls (WebRTC Signaling)
-    socket.on('callUser', ({ to, signal, from, name }) => {
-        io.to(to).emit('incomingCall', { signal, from, name });
+    // Handle WebRTC Call Signaling
+    socket.on('callUser', ({ to, signal, from }) => {
+        if (io.sockets.sockets.get(to)) {
+            io.to(to).emit('incomingCall', { signal, from, name: activeUsers[from]?.name });
+        }
     });
 
     socket.on('answerCall', ({ to, signal }) => {
