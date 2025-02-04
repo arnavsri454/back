@@ -1,4 +1,4 @@
-import express from 'express';
+ import express from 'express';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -15,7 +15,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 10000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/chatDB';
-const ADMIN = 'Admin';
+const ADMIN = process.env.ADMIN || 'Admin';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://front-gemg.onrender.com'; // Use env var for frontend URL
 
 const app = express();
 
@@ -24,7 +25,7 @@ app.use(helmet());
 
 // CORS Configuration
 app.use(cors({
-    origin: 'https://front-gemg.onrender.com', // Allow frontend requests
+    origin: FRONTEND_URL, // Allow frontend requests from env variable
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true,
@@ -39,14 +40,14 @@ if (!fs.existsSync(uploadDir)) {
 // MongoDB Connection
 mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ MongoDB Connection Error:', err));
+    .catch(err => console.error('❌ MongoDB Connection Error:', err.message)); // More descriptive error message
 
 // Message Schema (Auto-delete after 7 days)
 const messageSchema = new mongoose.Schema({
     name: String,
     text: String,
     room: String,
-    time: { type: Date, default: Date.now, expires: '7d' }, 
+    time: { type: Date, default: Date.now, expires: '7d' },
 });
 const Message = mongoose.model('Message', messageSchema);
 
@@ -60,12 +61,14 @@ const storage = multer.diskStorage({
         cb(null, `${Date.now()}_${file.originalname}`);
     }
 });
+
 const fileFilter = (req, file, cb) => {
     if (!file.mimetype.startsWith('image/')) {
         return cb(new Error('Only images are allowed!'), false);
     }
     cb(null, true);
 };
+
 const upload = multer({
     storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // Max: 5MB
@@ -92,7 +95,7 @@ const expressServer = app.listen(PORT, () => {
 // Initialize Socket.io
 const io = new Server(expressServer, {
     cors: {
-        origin: 'https://front-gemg.onrender.com',
+        origin: FRONTEND_URL,
         methods: ['GET', 'POST'],
         credentials: true,
     },
@@ -163,4 +166,3 @@ io.on('connection', (socket) => {
         console.log(`❌ User disconnected: ${socket.id}`);
     });
 });
-
