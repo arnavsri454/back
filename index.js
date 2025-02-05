@@ -30,9 +30,9 @@ app.use(helmet());
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://front-gemg.onrender.com'; // Use env var for frontend URL
 app.use(cors({
     origin: FRONTEND_URL, // Allow frontend requests from env variable
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],  // Allow common HTTP methods
+    allowedHeaders: ['Content-Type', 'Authorization'], // Allow necessary headers
+    credentials: true,  // Allow cookies and session data
 }));
 
 // Ensure upload directory exists
