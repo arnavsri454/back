@@ -14,7 +14,15 @@ dotenv.config(); // Load environment variables
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 10000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/chatDB';
+const MONGO_URI = process.env.MONGO_URI;
+
+mongoose.connect(MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+    .then(() => console.log('✅ MongoDB Atlas Connected'))
+    .catch(err => console.error('❌ MongoDB Connection Error:', err.message));
+
 const ADMIN = process.env.ADMIN || 'Admin';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://front-gemg.onrender.com'; // Use env var for frontend URL
 
