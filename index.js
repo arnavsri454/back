@@ -1,4 +1,4 @@
- import express from 'express';
+import express from 'express';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -9,22 +9,17 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import fs from 'fs';
 
-dotenv.config(); // Load environment variables
+// Load environment variables
+dotenv.config(); 
 
+// Debugging the MONGO_URI to ensure it's loaded correctly
+console.log("🔍 Checking MONGO_URI:", process.env.MONGO_URI);
+
+// Path and server configuration
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 10000;
-const MONGO_URI = process.env.MONGO_URI;
-
-mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-    .then(() => console.log('✅ MongoDB Atlas Connected'))
-    .catch(err => console.error('❌ MongoDB Connection Error:', err.message));
-
-const ADMIN = process.env.ADMIN || 'Admin';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://front-gemg.onrender.com'; // Use env var for frontend URL
+const MONGO_URI = process.env.MONGO_URI; // MongoDB URI from env
 
 const app = express();
 
@@ -32,6 +27,7 @@ const app = express();
 app.use(helmet());
 
 // CORS Configuration
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://front-gemg.onrender.com'; // Use env var for frontend URL
 app.use(cors({
     origin: FRONTEND_URL, // Allow frontend requests from env variable
     methods: ['GET', 'POST'],
@@ -46,9 +42,15 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // MongoDB Connection
-mongoose.connect(MONGO_URI)
-    .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ MongoDB Connection Error:', err.message)); // More descriptive error message
+mongoose.connect(MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+    .then(() => console.log('✅ MongoDB Atlas Connected'))
+    .catch(err => console.error('❌ MongoDB Connection Error:', err.message));
+
+// Admin and Socket.IO Setup
+const ADMIN = process.env.ADMIN || 'Admin';
 
 // Message Schema (Auto-delete after 7 days)
 const messageSchema = new mongoose.Schema({
