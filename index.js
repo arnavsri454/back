@@ -1,4 +1,4 @@
- import express from 'express';
+import express from 'express';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -63,38 +63,21 @@ io.on('connection', (socket) => {
     socket.on('joinRoom', ({ name, room }) => {
         socket.join(room);
         activeUsers[socket.id] = { name, room, id: socket.id };
-        io.to(room).emit('activeUsers', Object.values(activeUsers));
+        io.to(room).emit('activeUsers', Object.values(activeUsers).filter(user => user.room === room));
     });
 
-    // Start Group Call
-    socket.on('startGroupCall', () => {
-        const room = activeUsers[socket.id]?.room;
-        if (room) {
-            io.to(room).emit('groupCallStarted', { from: socket.id, roomUsers: Object.values(activeUsers).filter(user => user.room === room) });
+    // Start Group Call (Restrict to Room)
+    socket.on('startGroupCall', ({ room }) => {
+        if (!room) return;
+
+        const roomUsers = Object.values(activeUsers).filter(user => user.room === room && user.id !== socket.id);
+        
+        if (roomUsers.length > 0) {
+            io.to(room).emit('groupCallStarted', { from: socket.id, roomUsers });
         }
     });
 
-    // WebRTC Signaling
-    socket.on('sendOffer', ({ to, offer }) => {
-        io.to(to).emit('receiveOffer', { from: socket.id, offer });
-    });
-
-    socket.on('sendAnswer', ({ to, answer }) => {
-        io.to(to).emit('receiveAnswer', { from: socket.id, answer });
-    });
-
-    socket.on('sendICE', ({ to, candidate }) => {
-        io.to(to).emit('receiveICE', { from: socket.id, candidate });
-    });
-
-    // Handle Disconnect
     socket.on('disconnect', () => {
-        const user = activeUsers[socket.id];
-        if (user) {
-            delete activeUsers[socket.id];
-            io.to(user.room).emit('activeUsers', Object.values(activeUsers));
-            io.to(user.room).emit('userDisconnected', { userId: socket.id });
-        }
-        console.log(`❌ User disconnected: ${socket.id}`);
+        delete activeUsers[socket.id];
     });
 });
